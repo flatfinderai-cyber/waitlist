@@ -1,0 +1,25 @@
+# config.yaml — FlatFinder Automator configuration
+private_logic_path: "./_private_logic"
+
+deployment_targets:
+  - name: GCP
+    description: "Google Cloud Run"
+    command: "gcloud run deploy flatfinder-automator --source . --region europe-west1 --allow-unauthenticated"
+  - name: Vercel
+    description: "Vercel Serverless"
+    command: "vercel --prod"
+  - name: Firebase
+    description: "Firebase Hosting"
+    command: "firebase deploy --only hosting"
+
+security:
+  bandit_scan_path: "./_private_logic"
+  bandit_severity_level: "low"
+  prohibited_functions:
+    - "eval"
+    - "pickle"
+
+app:
+  name: "FlatFinder Automator"
+  version: "0.1.0"
+  mascot: "Benny"

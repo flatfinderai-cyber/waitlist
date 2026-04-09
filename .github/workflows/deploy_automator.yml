@@ -1,0 +1,69 @@
+name: Deploy Automator
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  security-audit:
+    name: Bandit Security Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit against _private_logic (fail on any issue)
+        # -lll → report LOW severity and above; exit non-zero on findings
+        run: bandit -r ./_private_logic -lll
+
+  deploy:
+    name: Deploy to Google Cloud Run
+    runs-on: ubuntu-latest
+    needs: security-audit
+    permissions:
+      contents: read
+      id-token: write   # required for Workload Identity Federation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to Cloud Run
+        env:
+          GCP_REGION: ${{ secrets.GCP_REGION }}
+        run: |
+          REGION="${GCP_REGION:-europe-west1}"
+          gcloud run deploy flatfinder-automator \
+            --source . \
+            --region "${REGION}" \
+            --allow-unauthenticated \
+            --project ${{ secrets.GCP_PROJECT_ID }}
