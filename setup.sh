@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "==> Installing Python dependencies..."
-pip install reflex pydantic python-dotenv requests supabase bandit PyYAML
+pip install -r requirements.txt
 
 echo "==> Initialising Reflex project..."
 reflex init

@@ -1,0 +1,7 @@
+reflex
+pydantic
+python-dotenv
+requests
+supabase
+bandit
+PyYAML

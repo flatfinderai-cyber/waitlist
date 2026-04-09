@@ -18,8 +18,10 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import re
+import shlex
 import subprocess  # noqa: S404  — intentional; see security note below
 import sys
 from pathlib import Path
@@ -277,7 +279,6 @@ class FactoryState(rx.State):
         try:
             config = _load_config()
             if config:
-                import json  # stdlib — safe to use here
                 self.spec_output = json.dumps(config, indent=2, default=str)
             else:
                 self.spec_output = "[INFO] config.yaml is empty or not found."
@@ -332,7 +333,6 @@ class FactoryState(rx.State):
 
             test_payload = {"action": "test_run", "parameters": {"env": "dev"}}
             result = execute_invention_logic(test_payload)
-            import json  # stdlib — safe
             self.engine_output = json.dumps(result, indent=2, default=str)
         except Exception as exc:
             self.engine_output = f"[ERROR] Engine test failed: {exc}"
@@ -353,9 +353,10 @@ class FactoryState(rx.State):
             )
             return
         raw_command: str = targets[self.selected_target]["command"]
-        # Split into a list (never passed to shell=True) to prevent
-        # shell injection.
-        command_parts = raw_command.split()
+        # Use shlex.split() to correctly handle quoted arguments and paths
+        # with spaces.  Commands are sourced from the config allow-list, not
+        # from user input, so this is safe.
+        command_parts = shlex.split(raw_command)
         try:
             result = subprocess.run(  # noqa: S603
                 command_parts,
